@@ -1,8 +1,3 @@
-# CHECK TRESHHOLD
-# ASK ABOUT THE GOAL
-# ASK ABOUT THE REFEREE COMMAND
-
-# import the necessary packages
 from collections import deque
 from numpy import interp
 import math
@@ -26,13 +21,12 @@ length_y = 300
 # Sensor Value
 ball_sensor = 0
 
-# When it's stuck between two
+# When it's stuck between two balls
 ball_counter_two = 0
 ball_radius_two = 0
 
 # List for opponent goal centerpoints, so that we know which way to turn
 opponent_goal_centre = []
-
 
 # Serial communication
 port = "COM4"
@@ -55,16 +49,12 @@ rf = serial.Serial(port, baud, serial.EIGHTBITS, timeout=0)
         rf.write(rf_input) # + '\r\n')
         print rf_input'''
 
-
-#start = time.time()
-
 def kick():
     return sc('k1')
 
 def ball_value():
     return ser.read(1)
     
-        
 def sd_all(a,b,c,d):
     return sc('a'+str(a)+'b'+str(b)+'c'+str(c)+'d'+str(d))
 
@@ -101,7 +91,6 @@ def contour_centre(cnts):
     centre.append(int(moments_b['m01'] / moments_b['m00']))
     return centre
 
-
 #rf('AX')
 # construct the argument parse and parse the argumentsq
 ap = argparse.ArgumentParser()
@@ -111,7 +100,7 @@ ap.add_argument("-b", "--buffer", type=int, default=64,
                 help="max buffer size")
 args = vars(ap.parse_args())
 
-# upper and lower boundaries for orange (ball) and blue (one of the goals)
+# upper and lower boundaries for orange (ball) and yellow/blue (for the goals), green for grass and white for lines
 orangeLower = (0, 114, 139)
 orangeUpper = (8, 255, 255)
 blueLower = (105,52,29)
@@ -127,8 +116,7 @@ blackUpper = (181,137,101)
 
 pts = deque(maxlen=args["buffer"])
 
-# if a video path was not supplied, grab the reference
-# to the webcam
+# if a video path was not supplied, grab the reference to the webcam
 if not args.get("video", False):
     camera = cv2.VideoCapture(0)
 
@@ -146,10 +134,8 @@ ready = 'a' + f_r + 'PING'
 acknowledge = 'a' + f_r + 'ACK------'
 
 
-# keep looping
+# main loop
 while True:
-
-    
     for c in rf.read():
         seq = seq+c
         #print seq
@@ -194,7 +180,6 @@ while True:
         if args.get("video") and not grabbed:
             break
 
-
         for c in rf.read():
             seq = seq+c
             #print seq
@@ -221,8 +206,6 @@ while True:
                 rf.write(acknowledge)
                 break
             
-        #print 'SUCCESS'
-        
         #ball_sensor = 0
         if '1' in ser.read():
             sen_counter = sen_counter + 1
@@ -236,8 +219,6 @@ while True:
         #if ball_sensor == 1:
             #kick()
             
-        #print 'boo'
-
         # resize the frame, blur it, and convert it to the HSV
         # color space
         frame = imutils.resize(frame, width=600)
@@ -278,7 +259,6 @@ while True:
         cnts4 = cv2.findContours(mask4.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
         cnts5 = cv2.findContours(mask5.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
         cnts6 = cv2.findContours(mask6.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-
 
         # cnts2 for blue --- cnts3 for yellow
         cntsg = cnts2
@@ -331,7 +311,7 @@ while True:
             if (ball_counter_two > 50):
                 sd_all(-100,100,100,1)
 
-            # Moving the motors
+            # Motor logic
             #turn right
             if (centre_ball[0] > 330) and (ball_radius < 18):
                 sd_all(75,75,75,1)
@@ -346,7 +326,6 @@ while True:
                 if toggle == 0:
                     sd_all(0,0,0,0)
                     break
-                
 
             #turn left
             if (centre_ball[0] < 230) and (ball_radius < 18):
@@ -362,8 +341,7 @@ while True:
                 if toggle == 0:
                     sd_all(0,0,0,0)
                     break
-
-            
+  
             #go forward
             if (centre_ball[0] > 230) and (centre_ball[0] < 330) and ball_radius < 18:
                 sd_all(-350,0,350,1)
@@ -380,8 +358,6 @@ while True:
                 if toggle == 0:
                     sd_all(0,0,0,0)
                     break
-
-
 
         # for finding the opponent's goal
         '''if len(cntsg) == 0 and ball_sensor == 1:
@@ -402,7 +378,6 @@ while True:
             else:
                 sd_all(-80,-80,-80,1)'''
         
-
         if ball_sensor == 1 and len(cntsg) == 0:
             sd_all(150,150,150,1)
             
@@ -429,13 +404,9 @@ while True:
             else:
                 opponent_goal_centre = []
 
-        
-            
             # draw it
             x, y, w, h = cv2.boundingRect(bc_g)
             #cv2.drawContours(frame, bc_g, -1, (255, 0, 0), 2)
-
-            #if cnts
 
             #turn right
             if (centre_goal[0] > 330):
@@ -458,14 +429,10 @@ while True:
                 ball_sensor=0
 
             #goal_position(bc_g)'''
-
-
-        
+  
         cv2.drawContours(frame, cnts2, -1, (52, 180, 205), 2)
         #cv2.drawContours(frame, cnts4, -1, (255, 255, 255), 2)
-        #cv2.drawContours(frame, cnts, -1, (0, 255, 0), 2)
-            
-
+        #cv2.drawContours(frame, cnts, -1, (0, 255, 0), 2)      
 
         # show the frame to our screen
         cv2.imshow("Frame", frame)
@@ -478,4 +445,3 @@ while True:
 # cleanup the camera and close any open windows
 camera.release()
 cv2.destroyAllWindows()
-#ser.close()
